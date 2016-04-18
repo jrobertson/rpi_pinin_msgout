@@ -18,15 +18,26 @@ class RPiPinInMsgOut < RPiPinIn
 
   def initialize(id, pull: nil, mode: :default, verbose: true, 
                  subtopic: 'sensor', device_id: 'pi', notifier: Echo.new, 
-                 duration: '5 seconds', index: 0, capture_rate: 0.5)
+                 duration: '5 seconds', index: 0, capture_rate: 0.5, 
+                 descriptor: 'detected')
     
     super(id, pull: pull)
         
     @mode, @verbose, @notifier, @duration = mode, verbose, notifier, duration
-    @capture_rate = capture_rate
+    @capture_rate, @descriptor = capture_rate, descriptor
     @topic = [device_id, subtopic, index].join('/')
     
   end
+  
+  def capture()
+   
+    case @mode
+      
+    when :default
+      setup { default_mode() }
+    end
+    
+  end  
 
   def capture_high()
    
@@ -51,12 +62,35 @@ class RPiPinInMsgOut < RPiPinIn
   
   private
   
+  def button_setup()
+    
+    t0 = Time.now + 1        
+    
+    self.watch do |v|
+
+      # ignore any movements that happened a short time ago e.g. 250 
+      #               milliseconds ago since the last movement
+      if t0 + @capture_rate < Time.now then     
+        
+        puts  Time.now.to_s if @verbose
+        
+        yield(v) 
+        
+        t0 = Time.now
+        
+      else
+        #puts 'ignoring ...'
+      end   
+      
+    end # /watch 
+  end
+  
   def setup()
     
     t0 = Time.now + 1        
     
     self.watch_high do 
-      
+
       # ignore any movements that happened a short time ago e.g. 250 
       #               milliseconds ago since the last movement
       if t0 + @capture_rate < Time.now then     
@@ -86,9 +120,9 @@ class RPiPinInMsgOut < RPiPinIn
       # identify if the movement is consecutive
       msg = if elapsed < duration then              
         s = ChronicDuration.output(duration, :format => :long)
-        "%s: detected %s times within the past %s" % [@topic, count, s ]
+        "%s: %s %s times within the past %s" % [@topic, count, @descriptor, s ]
       else              
-        "%s: detected" % [@topic, @index]
+        "%s: %s" % [@topic, @descriptor]
       end
       
       @notifier.notice msg
@@ -101,7 +135,7 @@ class RPiPinInMsgOut < RPiPinIn
   end    
   
   def default_mode()
-    @notifier.notice "%s: detected" % [@topic, @index]
+    @notifier.notice "%s: %s" % [@topic, @descriptor]
   end
     
 end
