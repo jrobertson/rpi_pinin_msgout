@@ -3,6 +3,7 @@
 # file: rpi_pinin_msgout.rb
 
 require 'rpi_pinin'
+require 'secret_knock'
 require 'chronic_duration'
 
 
@@ -13,9 +14,26 @@ class Echo
   end
 end
 
+class SecretKnockNotifier
+  
+  def initialize(notifier, topic: 'secretknock')
+    
+    @notifier, @topic = notifier, topic
+    
+  end
+  
+  def knock()
+  end
+  
+  def message(s)
+    @notifier.notice "%s: %s" % [topice, s]
+  end
+end
+
 class RPiPinInMsgOut < RPiPinIn
 
-
+  # duration: Used by sample mode
+  
   def initialize(id, pull: nil, mode: :default, verbose: true, 
                  subtopic: 'sensor', device_id: 'pi', notifier: Echo.new, 
                  duration: '5 seconds', index: 0, capture_rate: 0.5, 
@@ -29,20 +47,9 @@ class RPiPinInMsgOut < RPiPinIn
     
   end
   
-  def capture()
-   
-    case @mode
-      
-    when :default
-      setup { default_mode() }
-    end
-    
-  end  
-
   def capture_high()
-   
-    case @mode
-    when :interval
+       
+    if @mode == :interval or @mode == :sample then
       
       count = 0
       
@@ -54,36 +61,28 @@ class RPiPinInMsgOut < RPiPinIn
         count, t1 = interval_mode(t1, count, duration) 
       end
       
-    when :default
+    elsif @mode == :default
+      
       setup { default_mode() }
+      
+    elsif @mode == :secretknock
+      
+      notifier = SecretKnockNotifier.new(@notifier, topic: @topic)
+      
+      sk = SecretKnock.new \
+          short_delay: 0.55, long_delay: 1.1, external: notifier
+      sk.detect
+      setup { sk.knock }
+      
+      
     end
     
   end
   
+  alias capture capture_high
+  
   private
   
-  def button_setup()
-    
-    t0 = Time.now + 1        
-    
-    self.watch do |v|
-
-      # ignore any movements that happened a short time ago e.g. 250 
-      #               milliseconds ago since the last movement
-      if t0 + @capture_rate < Time.now then     
-        
-        puts  Time.now.to_s if @verbose
-        
-        yield(v) 
-        
-        t0 = Time.now
-        
-      else
-        #puts 'ignoring ...'
-      end   
-      
-    end # /watch 
-  end
   
   def setup()
     
@@ -137,5 +136,5 @@ class RPiPinInMsgOut < RPiPinIn
   def default_mode()
     @notifier.notice "%s: %s" % [@topic, @descriptor]
   end
-    
+      
 end
