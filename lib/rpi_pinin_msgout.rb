@@ -3,8 +3,10 @@
 # file: rpi_pinin_msgout.rb
 
 require 'rpi_pinin'
+require 'morsecode'
 require 'secret_knock'
 require 'chronic_duration'
+require 'morsecode_listener' 
 
 
 class Echo
@@ -31,6 +33,24 @@ class SecretKnockNotifier
   end
 end
 
+class MorseCodeTranslator < MorseCode
+  
+  def initialize(notifier, topic: 'morsecode')
+    
+    super()
+    @notifier, @topic = notifier, topic
+    
+  end
+  
+  def message(s)
+
+    @input_string = s
+    @notifier.notice "%s: %s" % [@topic, self.to_s]
+
+  end
+end
+
+
 class RPiPinInMsgOut < RPiPinIn
 
   # duration: Used by sample mode
@@ -45,6 +65,35 @@ class RPiPinInMsgOut < RPiPinIn
     @mode, @verbose, @notifier, @duration = mode, verbose, notifier, duration
     @capture_rate, @descriptor = capture_rate, descriptor
     @topic = [device_id, subtopic, index].join('/')
+
+  end
+  
+  def capture(external: nil)
+
+    if @mode == :default then
+      
+      button_setup do |state| 
+        default_mode() if state == HIGH
+      end
+      
+    elsif @mode == :secretknock
+      
+      notifier = SecretKnockNotifier.new(@notifier, topic: @topic)
+      
+      sk = SecretKnock.new \
+          short_delay: 0.55, long_delay: 1.1, external: notifier
+      sk.detect
+
+      setup { sk.knock }    
+      
+    elsif @mode == :morsecode
+
+      mct = MorseCodeTranslator.new @notifier, topic: @topic
+      mcl = MorseCodeListener.new notifier: mct
+      
+      button_setup(external: mcl)
+      
+    end
     
   end
   
@@ -74,17 +123,29 @@ class RPiPinInMsgOut < RPiPinIn
           short_delay: 0.55, long_delay: 1.1, external: notifier
       sk.detect
 
-      setup { sk.knock }
-      
+      setup { sk.knock }      
       
     end
     
   end
   
-  alias capture capture_high
   
   private
-  
+
+  def button_setup(external: nil)
+       
+    self.watch do |state|
+
+      name = state.to_i == 1 ? :on_keydown : :on_keyup
+      external.method(name).call
+
+      puts  Time.now.to_s + ': ' + state.to_s if @verbose
+
+      yield state if block_given?
+      
+    end 
+    
+  end     
   
   def setup()
     
