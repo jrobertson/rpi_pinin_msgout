@@ -25,8 +25,9 @@ class SecretKnockNotifier
   def knock()
   end
   
+  
   def message(s)
-    @notifier.notice "%s: %s" % [topice, s]
+    @notifier.notice "%s: %s" % [@topic, s]
   end
 end
 
@@ -72,6 +73,7 @@ class RPiPinInMsgOut < RPiPinIn
       sk = SecretKnock.new \
           short_delay: 0.55, long_delay: 1.1, external: notifier
       sk.detect
+
       setup { sk.knock }
       
       
