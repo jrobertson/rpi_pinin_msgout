@@ -33,23 +33,6 @@ class SecretKnockNotifier
   end
 end
 
-class MorseCodeTranslator < MorseCode
-  
-  def initialize(notifier, topic: 'morsecode')
-    
-    super()
-    @notifier, @topic = notifier, topic
-    
-  end
-  
-  def message(s)
-
-    @input_string = s
-    @notifier.notice "%s: %s" % [@topic, self.to_s]
-
-  end
-end
-
 
 class RPiPinInMsgOut < RPiPinIn
 
@@ -68,7 +51,7 @@ class RPiPinInMsgOut < RPiPinIn
 
   end
   
-  def capture(external: nil)
+  def capture()
 
     if @mode == :default then
       
@@ -87,9 +70,12 @@ class RPiPinInMsgOut < RPiPinIn
       setup { sk.knock }    
       
     elsif @mode == :morsecode
-
-      mct = MorseCodeTranslator.new @notifier, topic: @topic
-      mcl = MorseCodeListener.new notifier: mct
+      
+      on_message = -> (mc) do
+        @notifier.notice "%s: %s" % [@topic, MorseCode.new(mc).to_s]        
+      end
+      
+      mcl = MorseCodeListener.new &on_message
       
       button_setup(external: mcl)
       
