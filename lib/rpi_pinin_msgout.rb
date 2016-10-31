@@ -35,6 +35,10 @@ end
 
 
 class RPiPinInMsgOut < RPiPinIn
+  
+    
+  HIGH = 1
+  LOW = 0  
 
   # duration: Used by sample mode
   
@@ -123,7 +127,7 @@ class RPiPinInMsgOut < RPiPinIn
     self.watch do |state|
 
       name = state.to_i == 1 ? :on_keydown : :on_keyup
-      external.method(name).call
+      external.method(name).call if external
 
       puts  Time.now.to_s + ': ' + state.to_s if @verbose
 
