@@ -52,6 +52,7 @@ class RPiPinInMsgOut < RPiPinIn
     @mode, @verbose, @notifier, @duration = mode, verbose, notifier, duration
     @capture_rate, @descriptor = capture_rate, descriptor
     @topic = [device_id, subtopic, index].join('/')
+    @old_state = 'up'
 
   end
   
@@ -61,6 +62,18 @@ class RPiPinInMsgOut < RPiPinIn
       
       button_setup do |state| 
         default_mode() if state == HIGH
+      end
+
+    elsif @mode == :downup
+      
+      button_setup do |raw_state| 
+          
+        state =  raw_state == HIGH ? 'down' : 'up'          
+        next if state == @old_state
+
+        @notifier.notice "%s: button %s" % [@topic, state]
+        @old_state = state
+        
       end
       
     elsif @mode == :secretknock
