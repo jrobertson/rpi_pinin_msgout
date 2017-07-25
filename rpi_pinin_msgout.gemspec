@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name = 'rpi_pinin_msgout'
-  s.version = '0.3.3'
+  s.version = '0.3.4'
   s.summary = 'Returns meaningful messages for humans from the capture of a Raspberry PI GPIO input pin.'
   s.authors = ['James Robertson']
   s.files = Dir['lib/rpi_pinin_msgout.rb']

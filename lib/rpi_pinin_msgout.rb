@@ -60,9 +60,7 @@ class RPiPinInMsgOut < RPiPinIn
 
     if @mode == :default then
       
-      button_setup do |state| 
-        default_mode() if state == HIGH
-      end
+      setup { default_mode()  }    
 
     elsif @mode == :downup
       
