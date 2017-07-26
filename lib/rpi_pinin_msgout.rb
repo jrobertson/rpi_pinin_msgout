@@ -42,16 +42,16 @@ class RPiPinInMsgOut < RPiPinIn
 
   # duration: Used by sample mode
   
-  def initialize(id, pull: nil, mode: :default, verbose: true, 
+  def initialize(gpio_pin, pull: nil, mode: :default, verbose: true, 
                  subtopic: 'sensor', device_id: 'pi', notifier: Echo.new, 
                  duration: '5 seconds', index: 0, capture_rate: 0.5, 
-                 descriptor: 'detected')
+                 descriptor: 'detected', id: nil)
     
-    super(id, pull: pull)
+    super(gpio_pin, pull: pull)
         
     @mode, @verbose, @notifier, @duration = mode, verbose, notifier, duration
     @capture_rate, @descriptor = capture_rate, descriptor
-    @topic = [device_id, subtopic, index].join('/')
+    @topic = [device_id, subtopic, id || index].join('/')
     @old_state = 'up'
 
   end
